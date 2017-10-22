@@ -4,6 +4,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
+import utils.ExpandUrl;
+
 public class Main {
 
 	public static void main(String[] args) {
@@ -13,16 +15,13 @@ public class Main {
 		
 		try {
 	
-			MongoDB.connectToDB();
-//			URLReader.HttpRedirect("https://lumi.news/p/04kd3wnq5c4gy");
-			//MongoDB.getHtml();
-//			OutputWriterReader.writeLastInserted("113410319=12");
-//			System.out.println(OutputWriterReader.checkLastInserted("113410319"));
-//			List<Entry<String, Long>> map = MongoDB.getTweetsByUser();
-//			System.out.println(map);
-
+			MongoDB.connectToDB();	//ESEGUIRE QUESTO
 			
 //			List<String> processed = new ArrayList<String>();
+//			MongoDB.TESTDB();
+			
+//			String address = ExpandUrl.Expand("https://en.wikipedia.org/wiki/Recommender_system");
+//			System.out.println(address);
 			
 		
 		} catch (Exception e) {

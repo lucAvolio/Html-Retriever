@@ -22,7 +22,13 @@ import static com.mongodb.client.model.Updates.*;
 import com.mongodb.client.result.UpdateResult;
 
 import Model.Site;
+import utils.ExpandUrl;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -31,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 public class MongoDB {
 
@@ -73,7 +80,7 @@ public class MongoDB {
 //	        	 long numDoc = htmlColl.count(q);
 		        	 
 		        	 FindIterable<Document> myDocTemp = coll.find(q).skip(skip);
-		        	 myDocTemp = myDocTemp.limit(30);
+//		        	 myDocTemp = myDocTemp.limit(100);
 		        	 MongoCursor<Document> myDoc = myDocTemp.iterator();
 		        	 
 		        	 
@@ -85,27 +92,31 @@ public class MongoDB {
 			             while (myDoc.hasNext()) {
 			            	 Document d = myDoc.next();
 			            	 Object id_user = d.getOrDefault("id_user", null).toString();
-			            	 Object id_Doc = d.getOrDefault("_id", null).toString();	 
+			            	 Object id_Doc = d.getOrDefault("_id", null).toString();
+			            	 Object date = d.getOrDefault("created_at",null);
 			            	 List<String> docUrls = (List<String>) d.get("urls");
 			            	 
-			            	 for (String url : docUrls) {
-			            		 try{
-			            			 
-			            			 if (url != null){
-			            			 Site site = URLReader.HttpRedirect(url);
-				            		 //update doc with html of the url
-			            			 persistHTML(site.getHtml(),id_user,site.getUrl(),htmlColl, id_Doc, i);
-				            		 
-			            			 }
-			            			 i++;
-				            		 
-			            		 } catch (Exception e) {
-			            			 System.out.println("Errore in connectToDB - Riga 84");
-			            			 System.out.println(e.getMessage());
-			            		 }
-			            	
-							}
-			            	OutputWriterReader.writeLastInserted(id_user.toString() + "=" + i);
+			            	 if(date.toString().contains("2016"))
+				            	 for (String url : docUrls) {
+				            		 try{
+				            			 url = ExpandUrl.Expand(url);
+				            			 if (url != null && url != "" && !url.contains("http://t.co") || !url.contains("https://t.co") ||
+				            					 !url.contains("//twitter.com/") || !url.contains("www.instagram.com") || 
+				            					 !url.contains("www.facebook.com")){
+				            			 Site site = URLReader.HttpRedirect(url);
+					            		 //update doc with html of the url
+				            			 persistHTML(site.getHtml(),id_user,site.getUrl(),htmlColl, id_Doc, date, i);
+					            		 
+				            			 }
+				            			 i++;
+					            		 
+				            		 } catch (Exception e) {
+				            			 System.out.println("Errore in connectToDB - Riga 84");
+				            			 System.out.println(e.getMessage());
+				            		 }
+				            	
+								}
+				            	OutputWriterReader.writeLastInserted(id_user.toString() + "=" + i);
 			             }
 			         } finally {
 			             myDoc.close();
@@ -123,7 +134,7 @@ public class MongoDB {
 		}
 	}
 	
-	private static void persistHTML(String html,Object id, String url, MongoCollection<Document> coll, Object docId, int i){
+	private static void persistHTML(String html,Object id, String url, MongoCollection<Document> coll, Object docId, Object date ,int i){
 		try {
 			
 //			//CONNECT TO DB
@@ -140,7 +151,8 @@ public class MongoDB {
 	            			 		.append("url", url)
 	            			 		.append("id_user",id)
 	            			 		.append("html",html)
-	            			 		.append("id_doc", docId);
+	            			 		.append("id_doc", docId)
+	            			 		.append("created_at", date);
 	         coll.insertOne(doc);
 	         
 	         System.out.println(i + ") Id_user: "+ id + " - Url: " + url + " - TweetsIdDoc: " + docId);
@@ -253,6 +265,89 @@ return sortedEntries;
 		for(int i=0 ; i< numOfEntryToSplice; i++){
 			map.remove(0);
 		}
+	}
+	
+	
+	public static void TESTDB() {
+		//CONNECT TO DB
+		MongoClient mongoClient = new MongoClient("localhost",27017);		
+		 // Now connect to your databases
+         MongoDatabase db = mongoClient.getDatabase("twitterDB");
+         
+         MongoCollection<Document> coll = db.getCollection("tweets");
+         MongoCollection<Document> htmlColl = db.getCollection("html");
+         //one document
+         //Document myDoc = coll.find().limit(1);
+         
+         
+         List<Entry<String, Long>> map = MongoDB.getTweetsByUser();
+         System.out.println(map);
+//         String[] lastInserted = OutputWriterReader.checkLastInserted();
+          int skip=0;
+//         if(lastInserted != null){
+//        	 skip = Integer.parseInt(lastInserted[1]);
+//        	 String key = lastInserted[0];
+         
+//         	MongoDB.spliceMap(key, map);
+//         }
+         
+
+         
+         //get 5 docs
+//         for(Entry<String,Long> entry: map){
+        	 
+        	 int i = skip;
+//        	 System.out.println(entry.getValue());
+        	 
+//        	 Number id = Integer.parseInt(entry.getKey());
+        	 BasicDBObject q = new BasicDBObject();
+        	q.put("created_at", Pattern.compile(Pattern.quote("2016")));
+        	 q.put("id_user",16582002);
+        	 
+//        	 long numDoc = htmlColl.count(q);
+	        	 
+	        	 FindIterable<Document> myDocTemp = coll.find(q).skip(skip);
+	        	 MongoCursor<Document> myDoc = myDocTemp.iterator();
+	        	 
+	        	 List<String> toWrite = new ArrayList<String>();
+	        	 
+	        	 
+	        	 
+	        	 
+//	             System.out.println("User: " + id);
+	             int j = 0;
+		         try {
+		             while (myDoc.hasNext()) {
+		            	 Document d = myDoc.next();
+		            	 Object id_user = d.getOrDefault("id_user", null).toString();
+		            	 Object id_Doc = d.getOrDefault("_id", null).toString();
+		            	 Object date = d.getOrDefault("created_at",null);
+		            	 List<String> docUrls = (List<String>) d.get("urls");
+		            	 toWrite.add(date.toString() + " " +docUrls.toString());
+		            	 System.out.println(date.toString() + " " +docUrls.toString());
+		            	 
+		             }
+		             }catch (Exception ex) {
+		            	 
+		             }
+		         myDoc.close();
+		         
+		        BufferedWriter out = null;
+		 		try  
+		 		{
+		 		    FileWriter fstream = new FileWriter("Tweet.txt", false); //true tells to append data.
+		 		    out = new BufferedWriter(fstream);
+		 		    for(String s: toWrite)
+		 		    	out.write(s + "\n");
+		 		    out.close();
+		 		}
+		 		catch (IOException e)
+		 		{
+		 			System.out.println("Errore in writeLastInserted");
+		 		    System.err.println("Error: " + e.getMessage());
+		 		}
+		         
+//         }
 	}
 	
 }
